@@ -24,13 +24,24 @@ public class AIServiceClient {
     }
 
     public List<User> findMatches(User currentUser, List<User> otherUsers) {
-        // Example: Return users with matching interests
-        return otherUsers.stream()
-                .filter(user -> !user.getId().equals(currentUser.getId()))
-                .filter(user -> user.getInterests().stream()
-                        .anyMatch(interest -> currentUser.getInterests().contains(interest))
-                )
-                .collect(Collectors.toList());
+        Map<String, Object> requestBody = Map.of(
+                "current_user", Map.of(
+                        "interests", currentUser.getInterests()
+                ),
+                "all_users", otherUsers.stream()
+                        .map(user -> Map.of(
+                                "id", user.getId(),
+                                "interests", user.getInterests()
+                        ))
+                        .collect(Collectors.toList())
+        );
+
+        return webClient.post()
+                .uri("/match")
+                .bodyValue(requestBody)
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<List<User>>() {})
+                .block(Duration.ofSeconds(5));
     }
 
     private Map<String, Object> convertUserToMap(User user) {
